@@ -1,10 +1,31 @@
+# Données
 data/*.csv
+mlruns/
+logs/
+
+# Notebooks
 .ipynb_checkpoints/
+notebooks/*_out/
+
+# Environnements / sauvegardes
+.env
+*.bak
+
+# Python
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
-.env
-*.bak
-mlruns/
-logs/
+
+# IDE / éditeurs
+.idea/
+.vscode/
+
+# Modèles & artefacts
+app/artifacts/
+embeddings/
+azureml/
+
+# Fichiers temporaires divers
+*.log
+*.tmp
