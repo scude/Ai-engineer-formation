@@ -10,6 +10,9 @@ notebooks/*_out/
 # Environnements / sauvegardes
 .env
 *.bak
+*:Zone.Identifier
+*Zone.Identifier
+
 
 # Python
 __pycache__/
@@ -24,7 +27,6 @@ __pycache__/
 # Modèles & artefacts
 app/artifacts/
 embeddings/
-azureml/
 
 # Fichiers temporaires divers
 *.log

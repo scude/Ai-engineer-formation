@@ -1,0 +1,16 @@
+name: p7-bert
+channels: [conda-forge]
+dependencies:
+  - python=3.10
+  - pip
+  - pip:
+      - pip>=24.0
+      - mlflow
+      - torch==2.3.1
+      - transformers==4.43.3
+      - datasets>=2.20.0
+      - scikit-learn
+      - accelerate
+      - azureml-mlflow
+      - pandas
+      - numpy

@@ -1,0 +1,42 @@
+$schema: https://azuremlschemas.azureedge.net/latest/commandJob.schema.json
+type: command
+display_name: p7-distilbert-cpu
+experiment_name: p7-distilbert
+
+code: ../src
+
+command: >-
+  python train.py
+  --train_csv ${{inputs.train_csv}}
+  --val_csv   ${{inputs.val_csv}}
+  --test_csv  ${{inputs.test_csv}}
+  --text_col text
+  --label_col label
+  --epochs 1
+  --max_length 128
+  --sample_n 40000
+
+environment: azureml:p7-bert-env:1
+
+compute: azureml:cpu-cluster
+
+environment_variables:
+  HF_HOME: /tmp/hf_cache
+
+inputs:
+  train_csv:
+    type: uri_file
+    path: azureml:sentiment140-train:1
+    mode: download
+  val_csv:
+    type: uri_file
+    path: azureml:sentiment140-val:1
+    mode: download
+  test_csv:
+    type: uri_file
+    path: azureml:sentiment140-test:1
+    mode: download
+
+outputs:
+  model:
+    type: uri_folder
