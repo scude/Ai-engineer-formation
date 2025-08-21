@@ -70,7 +70,7 @@ az ml compute create -g "$RG" -w "$WS" \
 
 ```bash
 # 4.1 Vérifier la présence des fichiers
-ds_root="/home/scude/projet7/data"  # adapter si besoin
+ds_root="/projet7/data"  # adapter si besoin
 ls -lh "$ds_root"/{train.csv,val.csv,test.csv}
 
 # 4.2 Créer les assets de données (v1)
@@ -90,7 +90,7 @@ az ml data create -g "$RG" -w "$WS" --name sentiment140-test --version 1 \
 
 ```bash
 # 5.1 Créer l’asset d’environnement à partir d’un YAML
-az ml environment create -g "$RG" -w "$WS" -f /home/scude/projet7/azureml/env/environment.yml
+az ml environment create -g "$RG" -w "$WS" -f /projet7/azureml/env/environment.yml
 
 # 5.2 Vérifier l’environnement (ex: p7-bert-env v1)
 az ml environment show -g "$RG" -w "$WS" --name p7-bert-env --version 1 -o table
@@ -102,7 +102,7 @@ az ml environment show -g "$RG" -w "$WS" --name p7-bert-env --version 1 -o table
 
 ```bash
 # 6.1 Se placer dans le dossier des jobs
-cd /home/scude/projet7/azureml/jobs
+cd /projet7/azureml/jobs
 
 # 6.2 Créer le job à partir de job.yml et récupérer son nom
 JOB=$(az ml job create -g "$RG" -w "$WS" -f job.yml --query name -o tsv)
@@ -137,3 +137,50 @@ uvicorn app.main:app --reload --port 8000
 * **Droits & rôles** : assurez-vous d’avoir les droits sur la souscription et le resource group.
 * **Quotas** : si la création du compute échoue, vérifiez les quotas de la région `francecentral`.
 * **Chemins** : adaptez les chemins (datasets, YAMLs) à votre arborescence locale.
+
+
+
+# Déploiement Azure — Commande de démarrage & Git LFS
+
+Ce mémo documente **la commande de démarrage Azure App Service** et **l’usage de Git LFS** pour versionner un modèle (ex. `model.keras`) et ses artefacts (ex. `tokenizer.json`) sans casser le déploiement.
+
+---
+
+## 1) Azure : définir la commande de démarrage
+
+
+### Portail Azure
+App Service → *Configuration* → *Paramètres généraux* → **Commande de démarrage** :
+```bash
+gunicorn -c gunicorn.conf.py app.main:app
+```
+
+### Azure CLI (équivalent)
+```bash
+az webapp config set   --resource-group <RG>   --name <APP_NAME>   --startup-file "gunicorn -c gunicorn.conf.py app.main:app"
+```
+
+---
+
+## 2) Installer Git LFS (pour versionner les artefacts lourds)
+
+### Ubuntu / WSL
+```bash
+sudo apt update
+sudo apt install -y git-lfs
+git lfs version   # vérif
+git lfs install   # initialisation
+```
+
+> ⚠️ GitHub refuse les fichiers > 100 Mo hors LFS.
+
+---
+
+## 3) Suivre et inclure les artefacts du modèle
+
+### 3.1 Traquer les fichiers avec LFS
+```bash
+# Tracker les fichiers lourds
+git lfs track "app/artifacts/model.keras"
+git add .gitattributes    # ajoute/maj le fichier généré par LFS
+```

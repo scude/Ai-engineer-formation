@@ -13,7 +13,6 @@ notebooks/*_out/
 *:Zone.Identifier
 *Zone.Identifier
 
-
 # Python
 __pycache__/
 *.pyc
@@ -25,7 +24,6 @@ __pycache__/
 .vscode/
 
 # Modèles & artefacts
-app/artifacts/
 embeddings/
 
 # Fichiers temporaires divers
