@@ -18,6 +18,18 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          lfs: true
+          fetch-depth: 0
+
+      - name: Ensure LFS blobs
+        run: git lfs pull
+
+      - name: Assert real artifacts (no LFS pointers)
+        run: |
+          test -s app/artifacts/tokenizer.json || (echo "::error::tokenizer.json absent/vide"; exit 1)
+          head -n1 app/artifacts/tokenizer.json | grep -q '^{'
+          test -s app/artifacts/model.keras || (echo "::error::model.keras absent"; exit 1)
 
       - name: Set up Python version
         uses: actions/setup-python@v5
