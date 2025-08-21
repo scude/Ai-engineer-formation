@@ -2,7 +2,7 @@ fastapi==0.115.5
 uvicorn[standard]==0.30.6
 gunicorn==22.0.0
 
-tensorflow-cpu==2.16.2
+tensorflow-cpu==2.18.*
 numpy==2.1.1
 
 applicationinsights==0.11.10
