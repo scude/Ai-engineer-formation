@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>Sentiment Demo (TensorFlow/Keras CNN + BiLSTM, embeddings GloVe-Twitter-200)</title>
+    <style>
+        :root {
+            --bg: #0b1020;
+            --card: #121a33;
+            --muted: #a3b1c2;
+            --accent: #6aa9ff;
+            --ok: #2ecc71;
+            --err: #ff6b6b;
+        }
+
+        * {
+            box-sizing: border-box
+        }
+
+        body {
+            margin: 0;
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Arial, sans-serif;
+            background: var(--bg);
+            color: white
+        }
+
+        .wrap {
+            max-width: 720px;
+            margin: 40px auto;
+            padding: 0 16px
+        }
+
+        .card {
+            background: var(--card);
+            border-radius: 14px;
+            padding: 18px;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, .25)
+        }
+
+        h1 {
+            margin: .2rem 0 1rem;
+            font-size: 1.6rem
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 120px;
+            background: #0e152a;
+            color: white;
+            border: 1px solid #223257;
+            border-radius: 10px;
+            padding: 12px;
+            font-size: 1rem;
+            resize: vertical
+        }
+
+        .row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap
+        }
+
+        .muted {
+            color: var(--muted);
+            font-size: .95rem
+        }
+
+        .counter {
+            margin-left: auto
+        }
+
+        button {
+            border: 0;
+            border-radius: 10px;
+            padding: 10px 14px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px
+        }
+
+        .btn {
+            background: var(--accent);
+            color: #061229
+        }
+
+        .btn:disabled {
+            opacity: .6;
+            cursor: not-allowed
+        }
+
+        .btn-ghost {
+            background: transparent;
+            border: 1px solid #2b3e6b;
+            color: #cfe1ff
+        }
+
+        .result {
+            margin-top: 14px;
+            display: none
+        }
+
+        .pill {
+            display: inline-block;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: #18254a;
+            color: #cfe1ff;
+            font-weight: 600
+        }
+
+        .ok {
+            color: var(--ok)
+        }
+
+        .err {
+            color: var(--err)
+        }
+
+        input[type="text"] {
+            width: 100%;
+            background: #0e152a;
+            color: white;
+            border: 1px solid #223257;
+            border-radius: 10px;
+            padding: 10px;
+            margin-top: 8px
+        }
+
+        .toast {
+            position: fixed;
+            right: 16px;
+            bottom: 16px;
+            background: #102247;
+            color: #fff;
+            padding: 10px 14px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, .3);
+            display: none
+        }
+
+        .small {
+            font-size: .9rem
+        }
+
+        /* Spinner */
+        .spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, .35);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin .9s linear infinite;
+        }
+
+        .spinner-dark {
+            border-color: rgba(18, 26, 51, .35);
+            border-top-color: #121a33;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .visually-hidden {
+            position: absolute !important;
+            height: 1px;
+            width: 1px;
+            overflow: hidden;
+            clip: rect(1px, 1px, 1px, 1px);
+            white-space: nowrap;
+        }
+
+        /* Flag sizing/alignment */
+        .flag-uk {
+            width: 18px;
+            height: 12px;
+            margin-right: 6px;
+            border-radius: 2px;
+            vertical-align: -2px;
+            box-shadow: 0 0 0 1px rgba(0, 0, 0, .25) inset;
+        }
+    </style>
+</head>
+<body>
+<div class="wrap">
+    <div class="card">
+        <h1>Sentiment Analysis Keras</h1>
+
+        <div class="row muted small" style="margin-bottom:.5rem">
+            <span>API:</span>
+            <code id="apiBase"></code>
+        </div>
+        <div class="row muted small" style="margin-bottom:.5rem">
+            <span>Model:</span>
+            <code>TensorFlow/Keras CNN + BiLSTM, embeddings GloVe-Twitter-200</code>
+        </div>
+        <br/>
+        <label for="text" class="muted">
+            <!-- Inline SVG UK flag -->
+            <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAACXBIWXMAAAB2AAAAdgFOeyYIAAAAGXRFWHRTb2Z0d2FyZQB3d3cuaW5rc2NhcGUub3Jnm+48GgAAAh1JREFUOI3FkltI0wEUxn///y6puWmr6SBLSUocEhEFzQKJlKCLQcVw+DYoR7eHSpKELgxK04KuL0pEYNGjJUUWidV0hOEQ2VoSmQlNt9buurXt30NZPowIfOh7Pec73/edc+B/Q7A96LdqK/Wu9kcT6+KJtHyuUL9F51xz/YYe4P3RI86u1x79fKIqRz7bpAt8ElyraqRv26qgwcSlZ166h3xIEnQ3VlBm2A6Ae/Ape9pGARAFgf1rcznnH0T5pA+x9eBZvssVLDFaOBFy0NtUwabV6ox2t5arsRuCXLjfgkpI4b93C4G9PVKWQuR4pYpaWw9qxwh+cz2l5h0ECwwABJx9BHvtlN6+g0JfSvKUhTZ7lM4XXxAcYx5pTkGdLUPyBpgNRigoX8HXws0AFPoGSE96EBZnI2o1TAcTxBLpn0t8R5mUwe0/Q1wIGUA+O9YPQI5SpCBPSdrrR4rOIBbpmFpWCcDSKRvTrs9k5eUiaPMJzaT+DFjf9BajQcv5ag3hi3eJvxzio6kO1b5q8n81JQWRkHsCrnYwU1LM810mrK/CROMpRHuznssROzLjYXy6Io4ZT1MzrGEqmPit8uZDiEPuPMY7rxGvMlB7xUqvbBDzRjWips5COBCj9cAZNowu5/FIIGPW4fEIO9udNIdL8HXdRMhW0thhRZh82NfQ4skvDseSWfMJf3vlRUoxeXL3Sod3wFm+0CMsHD8Av8vMGicetbYAAAAASUVORK5CYII="/>
+            Tweet (max 280 characters)
+        </label>
+        <textarea id="text" maxlength="280" placeholder="Paste or type a tweet..."></textarea>
+
+        <div class="row" style="margin-top:8px">
+            <span class="counter muted small" id="counter">0 / 280</span>
+        </div>
+
+        <div class="row" style="margin-top:12px">
+            <button id="btnPredict" class="btn">
+                <span class="btn-label">Predict</span>
+                <span class="spinner visually-hidden" aria-hidden="true"></span>
+            </button>
+            <button id="btnClear" class="btn-ghost">Clear</button>
+        </div>
+
+        <div id="result" class="result">
+            <hr style="border:0;border-top:1px solid #263a6b;margin:16px 0">
+            <div class="row" style="justify-content:space-between">
+                <div>
+                    <div class="muted">Prediction</div>
+                    <div style="margin-top:6px">
+                        <span class="pill" id="label">—</span>
+                        <span class="muted small" id="score" style="margin-left:8px"></span>
+                    </div>
+                    <div class="muted small" id="model" style="margin-top:6px"></div>
+                </div>
+                <div class="row" style="gap:8px">
+                    <button id="btnGood" class="btn-ghost">
+                        <span class="btn-label">✅ Correct</span>
+                        <span class="spinner spinner-dark visually-hidden" aria-hidden="true"></span>
+                    </button>
+                    <button id="btnBad" class="btn-ghost">
+                        <span class="btn-label">❌ Incorrect</span>
+                        <span class="spinner spinner-dark visually-hidden" aria-hidden="true"></span>
+                    </button>
+                </div>
+            </div>
+
+            <div id="fbForm" style="display:none;margin-top:12px">
+                <label for="note" class="muted small">Note (optional)</label>
+                <input id="note" type="text" placeholder="E.g., offensive language misclassified">
+                <div class="row" style="margin-top:8px">
+                    <button id="btnSendFb" class="btn">
+                        <span class="btn-label">Send feedback</span>
+                        <span class="spinner visually-hidden" aria-hidden="true"></span>
+                    </button>
+                    <span class="muted small" id="fbInfo"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+
+<script>
+    // >>>>>>>>>>>>>>>>>>>>> CONFIG <<<<<<<<<<<<<<<<<<<<<<
+    const API_BASE = window.API_BASE || "https://p7-sentiment-api.azurewebsites.net";
+    //const API_BASE = window.API_BASE || "http://127.0.0.1:8000";
+    // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+    const el = (id) => document.getElementById(id);
+    const $text = el('text'), $counter = el('counter'), $btnPredict = el('btnPredict'), $btnClear = el('btnClear');
+    const $result = el('result'), $label = el('label'), $score = el('score'), $model = el('model');
+    const $btnGood = el('btnGood'), $btnBad = el('btnBad'), $fbForm = el('fbForm'), $note = el('note'),
+        $btnSendFb = el('btnSendFb'), $fbInfo = el('fbInfo');
+    const $toast = el('toast'), $apiBase = el('apiBase');
+
+    $apiBase.textContent = API_BASE;
+
+    function toast(msg) {
+        $toast.textContent = msg;
+        $toast.style.display = 'block';
+        setTimeout(() => {
+            $toast.style.display = 'none';
+        }, 2500);
+    }
+
+    // Counter
+    function updateCounter() {
+        $counter.textContent = `${$text.value.length} / 280`;
+    }
+
+    $text.addEventListener('input', updateCounter);
+    updateCounter();
+
+    // Keep last prediction for feedback
+    let lastPrediction = null; // { text, predicted, prob, model_version }
+
+    // ------- Button loading helpers (toggle label/spinner) -------
+    function setButtonLoading(btn, isLoading, labelWhenIdle) {
+        const labelEl = btn.querySelector('.btn-label');
+        const spinEl = btn.querySelector('.spinner');
+        if (!labelEl || !spinEl) return;
+
+        btn.disabled = !!isLoading;
+        if (isLoading) {
+            spinEl.classList.remove('visually-hidden');
+            labelEl.dataset._text = labelEl.textContent;
+            if (labelWhenIdle) labelEl.textContent = labelWhenIdle; // keep same text
+        } else {
+            spinEl.classList.add('visually-hidden');
+            if (labelEl.dataset._text) {
+                labelEl.textContent = labelEl.dataset._text;
+                delete labelEl.dataset._text;
+            }
+        }
+    }
+
+    async function predict() {
+        const text = ($text.value || "").trim();
+        if (!text) {
+            toast("Enter english text");
+            return;
+        }
+
+        setButtonLoading($btnPredict, true);
+        try {
+            const r = await fetch(`${API_BASE}/predict`, {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({text})
+            });
+            if (!r.ok) throw new Error(`HTTP ${r.status}`);
+            const data = await r.json();
+
+            const predicted = (data.sentiment ?? data.label ?? data.predicted ?? 'unknown') + '';
+            const prob = (typeof data.proba_pos === 'number' && typeof data.proba_neg === 'number')
+                ? Math.max(data.proba_pos, data.proba_neg)
+                : (typeof data.probability === 'number' ? data.probability : null);
+            const mv = data.model_version ?? data.model ?? '';
+
+            lastPrediction = {text, predicted, prob, model_version: mv};
+
+            $label.textContent = predicted.toLowerCase().includes('pos') ? 'Positive' :
+                predicted.toLowerCase().includes('neg') ? 'Negative' : predicted;
+            $score.textContent = prob != null ? `(${(prob * 100).toFixed(1)} %)` : '';
+            $model.textContent = mv ? `Model: ${mv}` : '';
+
+            // Badge color
+            $label.style.background = predicted.toLowerCase().includes('pos') ? 'rgba(46, 204, 113, .15)' :
+                predicted.toLowerCase().includes('neg') ? 'rgba(255, 107, 107, .18)' :
+                    '#18254a';
+
+            $result.style.display = 'block';
+            $fbForm.style.display = 'none';
+            $note.value = '';
+
+            // Re-enable feedback buttons (new prediction)
+            $btnGood.disabled = false;
+            $btnBad.disabled = false;
+        } catch (e) {
+            console.error(e);
+            toast("Error during predict");
+        } finally {
+            setButtonLoading($btnPredict, false);
+        }
+    }
+
+    async function sendFeedback(correct) {
+        if (!lastPrediction) return;
+
+        const payload = {
+            text: lastPrediction.text,
+            predicted: lastPrediction.predicted,
+            correct: Boolean(correct),
+            note: ($note.value || '').slice(0, 200)
+        };
+
+        setButtonLoading($btnSendFb, true);
+        try {
+            const r = await fetch(`${API_BASE}/feedback`, {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify(payload)
+            });
+            if (!r.ok) throw new Error(`HTTP ${r.status}`);
+            toast("Feedback sent ✔");
+
+            // Hide the freshly opened feedback area and lock the vote buttons
+            $fbForm.style.display = 'none';
+            $fbInfo.textContent = "Thank you !";
+            $btnGood.disabled = true;
+            $btnBad.disabled = true;
+            $note.value = '';
+        } catch (e) {
+            console.error(e);
+            toast("Error sending feedback");
+        } finally {
+            setButtonLoading($btnSendFb, false);
+        }
+    }
+
+    // UI events
+    $btnPredict.addEventListener('click', predict);
+    $btnClear.addEventListener('click', () => {
+        $text.value = "";
+        updateCounter();
+        $result.style.display = 'none';
+        $btnGood.disabled = false;
+        $btnBad.disabled = false;
+        $fbForm.style.display = 'none';
+    });
+
+    // Open feedback form on choice; show small spinner on the clicked choice briefly (UX hint)
+    function openFeedbackForm(isCorrect) {
+        // brief visual hint on the clicked button (no network here)
+        const btn = isCorrect ? $btnGood : $btnBad;
+        setButtonLoading(btn, true);
+        setTimeout(() => setButtonLoading(btn, false), 200); // quick blink
+
+        $fbForm.style.display = 'block';
+        $note.placeholder = isCorrect ? "(optional)" : "Why is this incorrect?";
+        $btnSendFb.onclick = () => sendFeedback(isCorrect);
+        $fbInfo.textContent = "";
+    }
+
+    $btnGood.addEventListener('click', () => openFeedbackForm(true));
+    $btnBad.addEventListener('click', () => openFeedbackForm(false));
+</script>
+</body>
+</html>
