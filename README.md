@@ -184,3 +184,53 @@ git lfs install   # initialisation
 git lfs track "app/artifacts/model.keras"
 git add .gitattributes    # ajoute/maj le fichier généré par LFS
 ```
+
+# Configuration Azure App Service (Linux)
+
+Cette API FastAPI est déployée sur **Azure App Service**. Quelques **paramètres d’application** (variables d’environnement) doivent être configurés dans le portail Azure.
+
+## Où configurer
+**Portail Azure → App Service → Configuration → Paramètres d’application → Nouveau paramètre**  
+Renseignez les paires `Nom` / `Valeur`, **Enregistrez**, puis **Redémarrez** l’application.
+
+## Paramètres importants
+
+| Nom (clé)                             | Valeur conseillée | Rôle |
+|--------------------------------------|-------------------|------|
+| `SEQ_LEN` *(recommandé)*             | `80`              | **Longueur de séquence attendue par le modèle** (en **tokens**, pas en caractères). Doit **correspondre exactement** à l’input du modèle Keras (ex. `model.input_shape[1] == 80`). |
+| `MAX_LEN` *(héritage)*               | `80`              | Ancien nom utilisé par certains scripts. À éviter si `SEQ_LEN` est présent. Si vous conservez `MAX_LEN`, mettez **la même valeur que l’input du modèle**. |
+| `CORS_ALLOW_ORIGINS`                 | `*` ou domaines   | Autorise les origines front qui appellent l’API. |
+| `SCM_DO_BUILD_DURING_DEPLOYMENT`     | `1`               | Laisse Oryx installer les dépendances lors du déploiement GitHub Actions. |
+
+### Paramètres optionnels (modèle volumineux)
+| Nom                                   | Valeur            | Pourquoi |
+|---------------------------------------|-------------------|----------|
+| `WEBSITES_CONTAINER_START_TIME_LIMIT` | `600`             | Accorde plus de temps au conteneur pour démarrer si le premier chargement est long. |
+| `WORKERS`                             | `1`               | Évite de charger le modèle en double dans plusieurs workers Gunicorn. |
+| `TIMEOUT` / `GRACEFUL_TIMEOUT`        | `300`             | Délai Gunicorn plus large pendant l’inférence. |
+
+> 💡 **Important : `SEQ_LEN` / `MAX_LEN` sont en *tokens*** (séquences après `tokenizer.texts_to_sequences`), **pas en caractères**.  
+> Exemple : si le modèle a été entraîné avec `maxlen=80`, définir `255` provoquera une erreur du type  
+> `ValueError: expected shape=(None, 80), found shape=(1, 255)`.
+
+## Déterminer la bonne longueur
+- La valeur cible est généralement celle utilisée à l’entraînement (`pad_sequences(..., maxlen=80)`).
+- Elle peut aussi être lue dans le modèle : `model.input_shape[1]`.
+
+## Vérifier
+```bash
+# Santé
+curl -i https://<votre-app>.azurewebsites.net/health
+
+# Prédiction (le 1er appel peut être un peu plus lent : chargement lazy)
+curl -s -X POST "https://<votre-app>.azurewebsites.net/predict" \
+  -H "Content-Type: application/json" \
+  -d '{"text":"J’adore ce produit, c’est excellent !"}'
+
+
+BASE="https://p7-sentiment-api.azurewebsites.net"
+
+# Doit répondre: {"status":"stored"}
+curl -i -X POST "$BASE/feedback" \
+  -H "Content-Type: application/json" \
+  -d '{"text":"Test bad prediction","predicted":"pos","correct":false,"note":"offensive content misclassified"}'

@@ -4,6 +4,10 @@ from typing import Any, Dict
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi import HTTPException
+
+from pathlib import Path
 
 from .schemas import PredictRequest, PredictResponse, FeedbackRequest
 from .inference import predict_one
@@ -27,6 +31,19 @@ if APPINSIGHTS_KEY:
         telemetry_client = TelemetryClient(APPINSIGHTS_KEY)
     except Exception:
         telemetry_client = None
+
+ROOT = Path(__file__).resolve().parents[0]  # adapte si besoin
+INDEX = ROOT / "static" / "index.html"
+
+@app.get("/", include_in_schema=False)
+def home():
+    if INDEX.exists():
+        return FileResponse(INDEX)
+    raise HTTPException(
+        status_code=404,
+        detail=f'UI non trouvée. Placez "{INDEX}" dans le repo.'
+    )
+
 
 @app.get("/health")
 def health() -> Dict[str, Any]:
