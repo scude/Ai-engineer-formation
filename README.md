@@ -124,6 +124,7 @@ conda activate sentiment-api
 pip install --upgrade pip
 pip install fastapi "uvicorn[standard]"
 pip install scikit-learn joblib numpy
+pip install -U pytest httpx fastapi pydantic
 
 # 7.3 Démarrer l’API (adapter le chemin si besoin)
 cd ~/projet7  # <— changez ce chemin si nécessaire
@@ -234,3 +235,6 @@ BASE="https://p7-sentiment-api.azurewebsites.net"
 curl -i -X POST "$BASE/feedback" \
   -H "Content-Type: application/json" \
   -d '{"text":"Test bad prediction","predicted":"pos","correct":false,"note":"offensive content misclassified"}'
+  
+# Lancer les tests unitaires
+pytest --cache-clear -q
